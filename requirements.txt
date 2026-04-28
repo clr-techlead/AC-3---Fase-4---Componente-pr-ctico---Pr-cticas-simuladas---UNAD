@@ -1,0 +1,6 @@
+# Sistema de Reservas - Software FJ
+# Este proyecto usa únicamente la biblioteca estándar de Python 3.10+
+# No requiere instalación de paquetes externos.
+
+# Si deseas ejecutar análisis de calidad de código (opcional):
+# pip install flake8 black mypy
