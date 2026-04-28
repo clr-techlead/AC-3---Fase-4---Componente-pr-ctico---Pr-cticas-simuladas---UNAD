@@ -1,49 +1,84 @@
-# Sistema de Reservas v2.0 — Software FJ
+# Python OOP Reservation System
 
-> Proyecto académico universitario — UNAD
-> Python · POO avanzada · Patrones de diseño · Testing con unittest · Clean Code
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![OOP](https://img.shields.io/badge/Paradigm-Object--Oriented-blue?style=flat-square)]()
+[![Design Patterns](https://img.shields.io/badge/Design%20Patterns-Factory%20%7C%20Observer%20%7C%20Strategy-green?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-36%20unittest-brightgreen?style=flat-square&logo=pytest)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)]()
+[![Status](https://img.shields.io/badge/Status-Active-success?style=flat-square)]()
 
----
-
-## Descripción del sistema
-
-Software FJ gestiona clientes, servicios y reservas sin base de datos — todo vive en objetos Python. La versión 2.0 incorpora tres patrones de diseño clásicos (Factory, Observer, Strategy), un motor de facturación automática, exportación a CSV, búsqueda avanzada y una suite de pruebas unitarias con unittest.
-
-El principio rector fue construir código que se pueda cambiar sin miedo: agregar un nuevo tipo de servicio, una nueva estrategia de descuento o un nuevo canal de notificación no requiere tocar las clases existentes.
+> A full-featured business reservation management system built with Python, demonstrating advanced Object-Oriented Programming, classic design patterns, automated billing, CSV reporting, and a complete unittest suite.
 
 ---
 
-## Arquitectura del proyecto
+## Overview
+
+This project simulates the internal management platform of a fictional company called **Software FJ**, handling three core business domains: clients, services, and reservations. The entire data layer lives in memory using Python objects — no database required.
+
+The system was architected to be open for extension and closed for modification: adding a new service type, a discount strategy, or a notification channel requires zero changes to existing classes.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Python 3.10+ |
+| Paradigm | Object-Oriented Programming (OOP) |
+| Design Patterns | Factory Method, Observer, Strategy |
+| Testing | unittest (36 tests) |
+| Data Export | CSV (stdlib) |
+| Logging | logging module → file + console |
+| Dependencies | None (stdlib only) |
+
+---
+
+## Key Features
+
+- **Full reservation lifecycle** — PENDING → CONFIRMED → CANCELLED with state validation
+- **Automatic invoice generation** — created on confirmation with sequential numbering
+- **3 service types** — Room Booking, Equipment Rental, Professional Advisory
+- **5 discount strategies** — Standard, VIP Client (20%), Volume (tiered), Low Season, Combined
+- **Observer notifications** — email simulator, billing logger, full audit trail
+- **CSV export** — reservations and invoices exportable to spreadsheet
+- **Advanced search** — filter by status, client name, date range, minimum cost
+- **Context Manager** support for clean resource handling
+- **Custom exception hierarchy** — 8 specialized exceptions with chaining
+- **Centralized logging** — timestamped entries in `logs/app.log`
+
+---
+
+## Project Architecture
 
 ```
-
-sistema-reservas-poo/
+python-oop-reservation-system/
 │
 ├── src/
-│   ├── main.py
+│   ├── main.py                    # Entry point
 │   ├── models/
-│   │   ├── cliente.py          ← Encapsulación fuerte, regex de validación
-│   │   ├── servicio.py         ← Clase abstracta + ReservaSala, AlquilerEquipo, Asesoria
-│   │   ├── reserva.py          ← Ciclo PENDIENTE → CONFIRMADA → CANCELADA
-│   │   └── factura.py          ← Generada al confirmar (dataclass + contador correlativo)
+│   │   ├── cliente.py             # Client entity — strong encapsulation + regex validation
+│   │   ├── servicio.py            # Abstract base + ReservaSala, AlquilerEquipo, Asesoria
+│   │   ├── reserva.py             # Core domain — full lifecycle management
+│   │   └── factura.py             # Invoice model — dataclass + auto-counter
 │   ├── services/
-│   │   └── gestion_reservas.py ← Fachada v2.0: Observable + Context Manager
+│   │   └── gestion_reservas.py    # Service layer — Observable + Context Manager
 │   ├── patterns/
-│   │   ├── factory.py          ← ServicioFactory (Factory Method)
-│   │   ├── observer.py         ← Observable, NotificadorCorreo, RegistroAuditoria
-│   │   └── strategy.py         ← EstrategiaDescuento + 4 implementaciones concretas
+│   │   ├── factory.py             # Factory Method pattern
+│   │   ├── observer.py            # Observer pattern — 3 concrete observers
+│   │   └── strategy.py            # Strategy pattern — 5 discount strategies
 │   ├── exceptions/
-│   │   └── custom_exceptions.py ← Jerarquía de 8 excepciones personalizadas
+│   │   └── custom_exceptions.py   # Custom exception hierarchy (8 classes)
 │   └── utils/
-│       ├── logger.py            ← Logger centralizado → logs/app.log
-│       └── exportador.py        ← ExportadorCSV + BuscadorReservas
-├── logs/
-│   └── app.log
+│       ├── logger.py              # Centralized logger
+│       └── exportador.py          # CSV exporter + advanced search engine
+│
 ├── tests/
-│   ├── simulacion.py            ← 12 operaciones demostrativas
-│   ├── test_cliente.py          ← 13 pruebas unitarias de Cliente
-│   ├── test_reserva.py          ← 11 pruebas de estados y validaciones
-│   └── test_gestion.py          ← 12 pruebas de integración + patrones
+│   ├── simulacion.py              # Live demo — 12 operations
+│   ├── test_cliente.py            # 13 unit tests
+│   ├── test_reserva.py            # 11 unit tests
+│   └── test_gestion.py            # 12 integration tests
+│
+├── logs/app.log
 ├── README.md
 ├── requirements.txt
 └── .gitignore
@@ -51,128 +86,124 @@ sistema-reservas-poo/
 
 ---
 
-## Patrones de diseño implementados
-
-**Factory Method** — La clase `ServicioFactory` crea instancias a partir de un string de tipo. El código cliente nunca llama a los constructores directamente. Agregar un cuarto tipo de servicio solo requiere modificar la fábrica, no los puntos de uso.
-
-**Observer** — `GestionReservas` hereda de `Observable` y emite eventos como `reserva_confirmada` o `reserva_cancelada`. Tres observadores concretos disponibles: `NotificadorCorreo` (simula correo), `NotificadorFacturacion` y `RegistroAuditoria`. Suscribir o desuscribir es una línea de código.
-
-**Strategy** — Cinco estrategias de descuento intercambiables: `SinDescuento`, `DescuentoClienteVIP` (20% fijo), `DescuentoVolumen` (escalonado), `DescuentoTemporadaBaja` (15% ene-mar) y `DescuentoCombinado`. Todas implementan la interfaz abstracta `EstrategiaDescuento`.
-
----
-
-## Cómo ejecutar
+## Getting Started
 
 ```bash
-# Clonar
-git clone https://github.com/clr-techlead/AC-3---Fase-4---Componente-pr-ctico---Pr-cticas-simuladas---UNAD.git
+# Clone the repository
+git clone https://github.com/clr-techlead/python-oop-reservation-system.git
+cd python-oop-reservation-system
 
-# Demo principal
+# No dependencies needed — Python 3.10+ is all you need
+
+# Run the main demo
 python src/main.py
 
-# Simulación con 12 operaciones
+# Run the full simulation (12 operations including error scenarios)
 python tests/simulacion.py
 
-# Tests unitarios (individual)
-python -m unittest tests/test_cliente.py -v
-python -m unittest tests/test_reserva.py -v
-python -m unittest tests/test_gestion.py -v
-
-# Todos los tests
+# Run the full test suite
 python -m unittest discover tests -v
 ```
 
 ---
 
-## Ejemplos de uso
+## Usage Examples
 
 ### Context Manager
 
 ```python
+from src.services.gestion_reservas import GestionReservas
+from src.patterns.factory import ServicioFactory
+
 with GestionReservas() as sistema:
-    c = sistema.registrar_cliente('Ana', 'ana@ok.com', '3001234567')
-    sala = ServicioFactory.crear('sala', 'Sala Norte', 80_000, capacidad=15)
-    sistema.registrar_servicio(sala)
-    r = sistema.crear_reserva(c.id, sala.id, 3.0)
-    sistema.confirmar_reserva(r.id)  # genera factura automáticamente
+    client = sistema.registrar_cliente('Ana Torres', 'ana@company.com', '3001234567')
+    room = ServicioFactory.crear('sala', 'Main Conference Room', 80_000, capacidad=20)
+    sistema.registrar_servicio(room)
+    booking = sistema.crear_reserva(client.id, room.id, cantidad=3.0)
+    sistema.confirmar_reserva(booking.id)  # auto-generates invoice
 ```
 
-### Observadores
+### Observer Pattern
 
 ```python
+from src.patterns.observer import NotificadorCorreo, RegistroAuditoria
+
 sistema = GestionReservas()
-sistema.suscribir(NotificadorCorreo())
-sistema.suscribir(RegistroAuditoria())
-# cada evento posterior notifica a ambos
+sistema.suscribir(NotificadorCorreo())   # simulates email on every event
+sistema.suscribir(RegistroAuditoria())   # full audit trail
 ```
 
-### Estrategia de descuento
+### Strategy Pattern — Discount pricing
 
 ```python
-estrategia = DescuentoClienteVIP()
-precio_final = estrategia.aplicar(200_000, cantidad=1)
-# → 160_000 (20% descuento)
+from src.patterns.strategy import DescuentoClienteVIP, DescuentoCombinado, DescuentoVolumen
+
+vip = DescuentoClienteVIP()                  # 20% fixed discount
+volume = DescuentoVolumen()                  # tiered: 10% (5+), 20% (10+)
+combined = DescuentoCombinado(vip, volume)   # applies the best of both
+
+final_price = combined.aplicar(200_000, cantidad=6)
 ```
 
-### Exportar a CSV
+### CSV Export & Advanced Search
 
 ```python
-exp = ExportadorCSV('exports')
-ruta = exp.exportar_reservas(sistema.listar_reservas())
-```
+from src.utils.exportador import ExportadorCSV, BuscadorReservas
 
-### Búsqueda avanzada
+# Export
+ExportadorCSV('exports').exportar_reservas(sistema.listar_reservas())
 
-```python
+# Search
 buscador = BuscadorReservas(sistema.listar_reservas())
-confirmadas = buscador.por_estado('CONFIRMADA')
-caras = buscador.por_costo_minimo(200_000)
-ordenadas = buscador.ordenar_por_costo(ascendente=False)
+results = buscador.busqueda_combinada(estado='CONFIRMED', costo_minimo=150_000)
 ```
 
 ---
 
-## Manejo de excepciones
+## OOP Concepts Demonstrated
 
-| Situación | Excepción | Respuesta |
+| Concept | Implementation |
+|---|---|
+| **Abstraction** | `Servicio` (ABC), `EstrategiaDescuento` (ABC), `Observador` (ABC) |
+| **Inheritance** | 3 service subclasses, exception hierarchy, `GestionReservas` ← `Observable` |
+| **Polymorphism** | `calcular_costo()` per service type, `actualizar()` per observer |
+| **Encapsulation** | All attributes private (`__name`), access via `@property` with validation |
+| **Dataclasses** | `LineaFactura` — clean data container without boilerplate |
+| **Context Manager** | `__enter__` / `__exit__` in `GestionReservas` |
+
+---
+
+## Error Handling Strategy
+
+The system **never crashes**. Every public method catches its own exceptions, logs the event, and returns a safe value (`None` or `False`).
+
+| Block Type | Where Used |
+|---|---|
+| `try / except` | All public methods |
+| `try / except / else` | Client registration, reservation creation |
+| `try / except / finally` | Service registration, confirmation flow |
+| `raise X from Y` | Exception chaining in nested service lookups |
+
+---
+
+## Test Coverage
+
+| File | Tests | Scope |
 |---|---|---|
-| Email inválido o vacío | `ClienteInvalidoError` / `CampoVacioError` | Retorna `None` |
-| Servicio inexistente | `ServicioNoEncontradoError` | Reserva rechazada |
-| Reserva duplicada | `ReservaDuplicadaError` | Retorna `None` |
-| Estado inválido | `EstadoReservaError` | Retorna `False` |
-| Valor negativo | `ValorNegativoError` | Retorna `None` |
-| Error de cálculo | `CalculoCostoError` | Retorna `None` |
-
-Bloques usados: `try/except`, `try/except/else`, `try/except/finally`, encadenamiento con `raise ... from exc`.
+| `test_cliente.py` | 13 | Validation, normalization, equality |
+| `test_reserva.py` | 11 | State transitions, cost calculation, edge cases |
+| `test_gestion.py` | 12 | Full flow, Factory, Observer, Strategy, Context Manager |
+| **Total** | **36** | **All layers covered** |
 
 ---
 
-## Suite de tests
+## Author
 
-| Archivo | Tests | Qué verifica |
-|---|---|---|
-| test_cliente.py | 13 | Creación, validaciones, getters, igualdad |
-| test_reserva.py | 11 | Estados, costos, descuentos, servicio inactivo |
-| test_gestion.py | 12 | Flujo completo, context manager, Factory, Observer, Strategy |
-
-```
-python -m unittest discover tests -v
-# Ran 36 tests in ~0.1s
-# OK
-```
+Developed as a portfolio project demonstrating professional Python development skills.
+Applicable to **Full Stack Developer**, **Data Analyst**, and **Software Engineer** roles.
 
 ---
 
-## Conceptos POO aplicados
+## License
 
-**Abstracción:** `Servicio` y `EstrategiaDescuento` son clases abstractas que definen contratos sin implementación concreta.
-
-**Herencia:** Los tres tipos de servicio extienden `Servicio`. `GestionReservas` hereda de `Observable`. Las excepciones forman jerarquía donde `CampoVacioError` especializa `ClienteInvalidoError`.
-
-**Polimorfismo:** `calcular_costo()` se comporta diferente en cada subtipo de servicio. Los observadores reciben el mismo `actualizar()` pero reaccionan de forma independiente.
-
-**Encapsulación:** Todos los atributos críticos son privados (`__nombre`, `__estado`, etc.). El acceso pasa por properties con validación.
-
-**Dataclasses:** `LineaFactura` usa `@dataclass` donde no hay lógica de validación compleja.
-
-**Context Manager:** `GestionReservas` implementa `__enter__`/`__exit__` para garantizar cierre limpio del contexto.
+MIT — free to use and adapt.
