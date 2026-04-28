@@ -1,211 +1,162 @@
-# Guía de Configuración Inicial de GitHub - UNAD
+# Sistema de Reservas — Software FJ
 
-## 1. Instalar Git en Windows
-
-Descarga el instalador en: https://git-scm.com/download/win
-
-### Verificar la instalación
-
-Abrir terminal o cmd:
-
-```bash
-git --version
-```
-
-## 2. Crear cuenta en GitHub
-
-https://github.com/
+> Proyecto académico de nivel universitario — UNAD
+> Programación Orientada a Objetos en Python · Manejo avanzado de excepciones · Diseño limpio
 
 ---
 
-## Configuración del Grupo
+## Descripción del sistema
 
-### 1 — Crear la organización
+Software FJ necesitaba una plataforma interna para administrar tres recursos clave: sus clientes, el catálogo de servicios que ofrece y las reservas que vinculan a ambos. El sistema resultante es completamente en memoria (sin base de datos), está escrito en Python puro con orientación a objetos y es capaz de seguir operando ante cualquier tipo de error gracias a una capa de manejo de excepciones diseñada cuidadosamente.
 
-1. Ir a github.com → clic en "+" arriba a la derecha
-2. Seleccionar "New organization"
-3. Elegir plan **Free**
-4. Ponerle nombre a la organización (ej: `grupo5-UNAD`)
-5. Add organization members
-6. Continuar y completar el setup
-
-### 2 — Crear el repositorio dentro de la organización
-
-1. Entrar a la organización → botón "New repository"
-2. Ponerle nombre (ej: `proyecto-final`)
-3. Marcar **"Add a README file"**
-4. Clic en **Create repository**
-
-### 3 — Invitar a los compañeros
-
-1. Dentro del repositorio → **Settings** → **Collaborators and teams**
-2. Clic en **Add people**
-3. Buscar el usuario de GitHub de cada compañero
-4. Asignarles rol **"Write"**
-5. Cada compañero debe aceptar la invitación en su correo
+El foco técnico del proyecto está en demostrar que el código puede ser limpio, expresivo y robusto al mismo tiempo, sin sacrificar ninguno de esos tres atributos.
 
 ---
 
-## Cómo subir tu proyecto de Visual Studio Code a GitHub
+## Arquitectura del proyecto
 
-**Link:** https://github.com/login
-
-Entramos a GitHub, iniciamos sesión, y hacemos clic en **New repository**.
-
-Hacemos clic en **Create repository**. GitHub mostrará una página con instrucciones — ahí estará la URL del repo, por ejemplo:
-`https://github.com/tu-usuario/mi-proyecto.git`
-
-### Inicializar Git
-
-```bash
-git init
+```
+sistema-reservas-poo/
+│
+├── src/
+│   ├── main.py                        ← Punto de entrada
+│   │
+│   ├── models/
+│   │   ├── cliente.py                 ← Clase Cliente (encapsulación fuerte)
+│   │   ├── servicio.py                ← Clase abstracta + ReservaSala, AlquilerEquipo, Asesoria
+│   │   └── reserva.py                 ← Núcleo del sistema (ciclo de vida completo)
+│   │
+│   ├── services/
+│   │   └── gestion_reservas.py        ← Fachada de negocio (orquesta todo)
+│   │
+│   ├── exceptions/
+│   │   └── custom_exceptions.py       ← Jerarquía de excepciones personalizadas
+│   │
+│   └── utils/
+│       └── logger.py                  ← Logger centralizado → logs/app.log
+│
+├── logs/
+│   └── app.log                        ← Generado en tiempo de ejecución
+│
+├── tests/
+│   └── simulacion.py                  ← 12 operaciones: éxitos + errores
+│
+├── README.md
+├── requirements.txt
+└── .gitignore
 ```
 
-> Sirve para que Git empiece a rastrear esta carpeta. Crea una carpeta oculta `.git` donde se guarda todo el historial. Solo se hace **una vez** por proyecto.
+### Por qué esta estructura
 
-### Agregar archivos para subir a GitHub
-
-```bash
-git add .
-git status
-```
-
-Si solo se quiere agregar un archivo específico:
-
-```bash
-git add index.html
-```
-
-### Configurar usuario
-
-```bash
-git config --global user.name "Jhon Harold"
-git config --global user.email "jhonha.ing@gmail.com"
-```
-
-### Conectar tu proyecto con GitHub
-
-```bash
-git remote add origin https://github.com/tu-usuario/mi-proyecto.git
-```
-
-> Esto le dice a Git: "el repositorio remoto (en GitHub) se llama `origin` y está en esta URL". Es como darle a Git la dirección de destino. Solo se hace **una vez**.
-
-### Hacer el primer commit (guardar el estado)
-
-```bash
-git commit -m "primer commit"
-```
-
-> Sirve para guardar el estado del proyecto en ese momento. Git guarda ese historial para siempre y se puede volver a cualquier punto.
-
-### Verificar y cambiar rama
-
-```bash
-git branch                  # ver en qué rama estamos
-git branch -M main          # cambiarnos a rama principal main
-```
-
-### Subir tu código a GitHub
-
-```bash
-git push -u origin main
-```
-
-Si sale error al cargar:
-
-```bash
-git pull origin main --allow-unrelated-histories
-# o también:
-git pull origin main --rebase
-```
-
-> - `push` → sube tus commits al servidor
-> - `origin` → el nombre que le diste a GitHub
-> - `main` → la rama que estás subiendo
-> - `-u` → guarda esta configuración, así la próxima vez solo escribes `git push`
-
-### El ciclo de trabajo (de ahí en adelante)
-
-1. Haces cambios en tus archivos
-2. Los agregas: `git add .`
-3. Los confirmas con un mensaje: `git commit -m "descripción de lo que cambiaste"`
-4. Los subes: `git push`
+Cada carpeta tiene una responsabilidad única. Los modelos son solo datos + reglas de dominio. Los servicios son operaciones de negocio. Las excepciones son su propio módulo para que puedan importarse desde cualquier lado sin generar dependencias circulares. El logger es un singleton funcional disponible con un simple `from src.utils.logger import log`.
 
 ---
 
-## Cada estudiante de forma individual
+## Cómo ejecutar el proyecto
 
-### 4 — Clonar el repositorio
+### Requisitos previos
 
-Cada uno ejecuta esto en su terminal:
+- Python 3.10 o superior
+- No se necesitan librerías externas
+
+### Pasos
 
 ```bash
-git clone https://github.com/nombre-organizacion/proyecto-final.git
-cd proyecto-final
+# 1. Clonar el repositorio
+git clone https://github.com/clr-techlead/AC-3---Fase-4---Componente-pr-ctico---Pr-cticas-simuladas---UNAD.git
+cd AC-3---Fase-4---Componente-pr-ctico---Pr-cticas-simuladas---UNAD
+
+# 2. Ejecutar el punto de entrada
+python src/main.py
+
+# 3. Ejecutar la simulación completa (recomendado para ver el manejo de errores)
+python tests/simulacion.py
 ```
 
-> - **username:** usuario_git
-> - **password:** generar token
+Después de ejecutar, el archivo `logs/app.log` contendrá el historial detallado de todas las operaciones.
 
-### 5 — Crear su propia rama
+---
 
-```bash
-git switch main
-git pull
+## Ejemplos de uso
 
-# Crear su rama con su nombre
-git switch -c feature/tu-nombre
+### Registrar un cliente
+
+```python
+from src.services.gestion_reservas import GestionReservas
+
+sistema = GestionReservas()
+cliente = sistema.registrar_cliente(
+    nombre="Ana Torres",
+    email="ana@correo.com",
+    telefono="3001234567"
+)
+print(cliente)  # Cliente(id='A1B2C3D4', nombre='Ana Torres', ...)
 ```
 
-Para cambiar de rama:
+### Crear y confirmar una reserva
 
-```bash
-git switch nombre-de-la-rama
+```python
+from src.models.servicio import ReservaSala
+
+sala = ReservaSala("Sala Norte", precio_por_hora=80_000, capacidad=20)
+sistema.registrar_servicio(sala)
+
+reserva = sistema.crear_reserva(cliente.id, sala.id, cantidad=3.0)
+sistema.confirmar_reserva(reserva.id)
+print(f"Costo: {reserva.costo:,.2f} COP")
 ```
 
-### 7 — Subir la rama a GitHub
+### Calcular costo con descuento
 
-```bash
-git push -u origin feature/tu-nombre
-```
-
-### 8 — Trabajar y guardar cambios
-
-```bash
-git status                          # Ver qué archivos cambiaron
-git add .                           # Agregar los cambios
-git commit -m "descripción de lo que hice"   # Guardar con un mensaje
-```
-
-### Abrir Pull Request para unir el trabajo
-
-1. En GitHub → entrar al repositorio
-2. Verás un banner **"Compare & pull request"** sobre tu rama → clic ahí
-3. Ponerle título y descripción
-4. Clic en **Create pull request**
-
-### 9 — El líder aprueba y fusiona
-
-1. Entrar al Pull Request
-2. Revisar los cambios → **"Review changes"**
-3. Seleccionar **"Approve"**
-4. Clic en **"Merge pull request"** → **"Confirm merge"**
-
-### 10 — Todos se actualizan después de cada merge
-
-```bash
-git switch main
-git pull
-git switch feature/tu-nombre
-git merge main
+```python
+# 10% de descuento + IVA incluido
+reserva = sistema.crear_reserva(
+    cliente.id, sala.id, cantidad=2.0, descuento=0.10
+)
 ```
 
 ---
 
-## Reglas importantes para el grupo
+## Manejo de errores
 
-- Nadie trabaja directamente en `main`
-- Cada uno solo modifica sus propios archivos
-- Hacer `git pull` siempre antes de empezar a trabajar
-- Un mensaje de commit claro por cada cambio importante
+El sistema nunca se detiene. Cada operación pública en `GestionReservas` atrapa sus propios errores, los registra y retorna un valor seguro (`None` o `False`).
+
+| Situación | Excepción lanzada | Respuesta del sistema |
+|---|---|---|
+| Email inválido | `ClienteInvalidoError` | Retorna `None`, registra en log |
+| Campo vacío | `CampoVacioError` | Retorna `None`, registra en log |
+| Servicio no existe | `ServicioNoEncontradoError` | Reserva rechazada |
+| Reserva duplicada | `ReservaDuplicadaError` | Retorna `None` |
+| Confirmar ya confirmada | `EstadoReservaError` | Retorna `False` |
+| Valor negativo | `ValorNegativoError` | Retorna `None` |
+| Error de cálculo | `CalculoCostoError` | Retorna `None` |
+
+Todos los eventos quedan en `logs/app.log` con timestamp, nivel y descripción.
+
+---
+
+## Conceptos POO aplicados
+
+**Abstracción:** `Servicio` es una clase abstracta (ABC) que define el contrato `calcular_costo()` y `descripcion()`. Ninguna instancia directa es posible; solo las subclases concretas.
+
+**Herencia:** `ReservaSala`, `AlquilerEquipo` y `Asesoria` extienden `Servicio` y especializan tanto el cálculo de costo como la descripción.
+
+**Polimorfismo:** El método `calcular_costo_con_iva()` de la clase base llama internamente a `calcular_costo()`, que en tiempo de ejecución resuelve a la versión correcta según el tipo concreto del objeto.
+
+**Encapsulación:** Todos los atributos de `Cliente`, `Servicio` y `Reserva` son privados (doble guión bajo). El acceso externo se hace exclusivamente mediante `@property` y setters que validan cada valor antes de asignarlo.
+
+---
+
+## Robustez del sistema
+
+- `try / except` en cada operación pública
+- `try / except / else` para separar flujo exitoso del de error
+- `try / except / finally` para garantizar logs incluso cuando falla algo
+- Encadenamiento de excepciones con `raise ... from exc` para no perder el contexto original
+- Jerarquía de excepciones propia: `ErrorBase` → `ClienteInvalidoError` → `CampoVacioError`
+
+---
+
+## Resultado de la simulación
+
+Al ejecutar `tests/simulacion.py` se procesan 12 operaciones: registro de servicios y clientes válidos, intentos con datos incorrectos, reservas exitosas, detección de duplicados, confirmación, cancelación e intento de confirmar un estado ya cerrado. El sistema completa las 12 operaciones sin lanzar ninguna excepción no controlada.
