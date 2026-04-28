@@ -1,13 +1,15 @@
 # ==============================================================
-# gestion_reservas.py
-# Capa de servicio: orquesta clientes, servicios y reservas
-# Toda la lógica de negocio y manejo de excepciones vive aquí
+# gestion_reservas.py  v2.0
+# Capa de servicio — orquesta clientes, servicios y reservas
+# Incorpora: Context Manager, patrón Observer, Facturación
 # ==============================================================
 
 from typing import List, Optional
 from src.models.cliente import Cliente
 from src.models.servicio import Servicio
 from src.models.reserva import Reserva, EstadoReserva
+from src.models.factura import Factura
+from src.patterns.observer import Observable
 from src.exceptions.custom_exceptions import (
     ClienteInvalidoError, ServicioNoEncontradoError,
     ReservaInvalidaError, ReservaDuplicadaError,
@@ -16,43 +18,50 @@ from src.exceptions.custom_exceptions import (
 from src.utils.logger import log
 
 
-class GestionReservas:
+class GestionReservas(Observable):
     """
     Fachada principal del sistema Software FJ.
 
-    Administra tres colecciones en memoria:
-      - _clientes  : lista de objetos Cliente
-      - _servicios : lista de objetos Servicio
-      - _reservas  : lista de objetos Reserva
-
-    Cada método público aplica al menos un bloque try/except y
-    registra el resultado en el logger, garantizando que ningún
-    error detenga la ejecución del sistema.
+    Mejoras v2.0:
+    - Hereda Observable: emite eventos a observadores suscritos
+    - Implementa Context Manager (__enter__ / __exit__)
+    - Genera facturas automáticamente al confirmar una reserva
+    - Historial de facturas consultable
     """
 
     def __init__(self):
+        super().__init__()   # Inicializa la lista de observadores
         self._clientes: List[Cliente] = []
         self._servicios: List[Servicio] = []
         self._reservas: List[Reserva] = []
-        log.info("Sistema Software FJ iniciado correctamente.")
+        self._facturas: List[Factura] = []
+        log.info("Sistema Software FJ v2.0 iniciado.")
+
+    # ── Context Manager ───────────────────────────────────────
+    def __enter__(self):
+        """Permite usar el sistema con el bloque with."""
+        log.debug("GestionReservas: entrando al bloque with")
+        return self
+
+    def __exit__(self, tipo_exc, valor_exc, traceback):
+        """
+        Cierra el contexto. Si ocurrió una excepción, la registra
+        en el log pero no la suprime (retorna False).
+        """
+        if tipo_exc:
+            log.error(f"GestionReservas: excepción en bloque with: {valor_exc}")
+        else:
+            log.debug("GestionReservas: bloque with finalizado sin errores")
+        return False
 
     # ══════════════════════════════════════════════════════════
     # GESTIÓN DE CLIENTES
     # ══════════════════════════════════════════════════════════
 
-    def registrar_cliente(
-        self, nombre: str, email: str, telefono: str
-    ) -> Optional[Cliente]:
-        """
-        Crea y registra un nuevo cliente.
-        Usa try/except/else para separar el flujo de error del flujo exitoso.
-        """
+    def registrar_cliente(self, nombre: str, email: str, telefono: str) -> Optional[Cliente]:
         try:
-            # Validar duplicado por email antes de crear
             if self._buscar_cliente_por_email(email):
-                raise ClienteInvalidoError(
-                    "email", f"{email} ya está registrado"
-                )
+                raise ClienteInvalidoError("email", f"{email} ya registrado")
             cliente = Cliente(nombre, email, telefono)
         except ClienteInvalidoError as exc:
             log.error(f"No se pudo registrar cliente: {exc}")
@@ -62,11 +71,10 @@ class GestionReservas:
             return None
         else:
             self._clientes.append(cliente)
-            log.info(f"Cliente registrado exitosamente: {cliente.id}")
+            self.notificar("cliente_registrado", {"cliente": cliente.nombre})
             return cliente
 
     def obtener_cliente(self, id_cliente: str) -> Optional[Cliente]:
-        """Recupera un cliente por ID. Devuelve None si no existe."""
         return next((c for c in self._clientes if c.id == id_cliente), None)
 
     def listar_clientes(self) -> List[Cliente]:
@@ -74,8 +82,7 @@ class GestionReservas:
 
     def _buscar_cliente_por_email(self, email: str) -> Optional[Cliente]:
         return next(
-            (c for c in self._clientes if c.email == email.strip().lower()),
-            None
+            (c for c in self._clientes if c.email == email.strip().lower()), None
         )
 
     # ══════════════════════════════════════════════════════════
@@ -83,10 +90,6 @@ class GestionReservas:
     # ══════════════════════════════════════════════════════════
 
     def registrar_servicio(self, servicio: Servicio) -> bool:
-        """
-        Añade un servicio al catálogo.
-        Usa try/except/finally para garantizar el log incluso en error.
-        """
         resultado = False
         try:
             if not isinstance(servicio, Servicio):
@@ -97,19 +100,12 @@ class GestionReservas:
             log.error(f"Error al registrar servicio: {exc}")
         finally:
             estado_txt = "OK" if resultado else "FALLIDO"
-            nombre_txt = getattr(servicio, "nombre", "desconocido")
-            log.debug(f"registrar_servicio('{nombre_txt}') → {estado_txt}")
+            log.debug(f"registrar_servicio → {estado_txt}")
         return resultado
 
     def obtener_servicio(self, id_servicio: str) -> Servicio:
-        """
-        Recupera un servicio por ID.
-        Lanza ServicioNoEncontradoError si no existe, encadenando contexto.
-        """
         try:
-            resultado = next(
-                (s for s in self._servicios if s.id == id_servicio), None
-            )
+            resultado = next((s for s in self._servicios if s.id == id_servicio), None)
             if resultado is None:
                 raise ServicioNoEncontradoError(id_servicio)
             return resultado
@@ -135,32 +131,17 @@ class GestionReservas:
         nota: str = "",
         descuento: float = 0.0
     ) -> Optional[Reserva]:
-        """
-        Flujo completo de creación de reserva.
-        Demuestra: try/except anidado + encadenamiento de excepciones.
-        """
         try:
-            # Validar existencia de cliente
             cliente = self.obtener_cliente(id_cliente)
             if cliente is None:
-                raise ReservaInvalidaError(
-                    f"cliente '{id_cliente}' no encontrado"
-                )
-
-            # Validar existencia de servicio (puede lanzar ServicioNoEncontradoError)
+                raise ReservaInvalidaError(f"cliente '{id_cliente}' no encontrado")
             try:
                 servicio = self.obtener_servicio(id_servicio)
             except ServicioNoEncontradoError as exc:
-                raise ReservaInvalidaError(
-                    f"servicio no disponible: {exc}"
-                ) from exc
-
-            # Detectar duplicados
+                raise ReservaInvalidaError(f"servicio no disponible: {exc}") from exc
             if self._existe_reserva_activa(id_cliente, id_servicio):
                 raise ReservaDuplicadaError(id_cliente, id_servicio)
-
             reserva = Reserva(cliente, servicio, cantidad, nota, descuento)
-
         except (ReservaInvalidaError, ReservaDuplicadaError, CalculoCostoError) as exc:
             log.error(f"Reserva rechazada: {exc}")
             return None
@@ -169,18 +150,24 @@ class GestionReservas:
             return None
         else:
             self._reservas.append(reserva)
+            self.notificar("reserva_creada", {
+                "reserva_id": reserva.id,
+                "cliente": cliente.nombre,
+                "email": cliente.email,
+                "servicio": servicio.nombre,
+                "costo": f"${reserva.costo:,.2f}",
+            })
             return reserva
 
     def confirmar_reserva(self, id_reserva: str) -> bool:
-        """
-        Confirma una reserva existente.
-        Usa try/except/else/finally.
-        """
         confirmada = False
         reserva = None
         try:
             reserva = self._obtener_reserva_o_error(id_reserva)
             reserva.confirmar()
+            # Generar factura automáticamente al confirmar
+            factura = Factura(reserva)
+            self._facturas.append(factura)
         except EstadoReservaError as exc:
             log.warning(f"Transición inválida: {exc}")
         except ReservaInvalidaError as exc:
@@ -189,16 +176,29 @@ class GestionReservas:
             log.error(f"Error inesperado al confirmar: {exc}")
         else:
             confirmada = True
+            self.notificar("reserva_confirmada", {
+                "reserva_id": reserva.id,
+                "cliente": reserva.cliente.nombre,
+                "email": reserva.cliente.email,
+                "servicio": reserva.servicio.nombre,
+                "costo": f"${reserva.costo:,.2f}",
+            })
         finally:
             estado = reserva.estado if reserva else "no encontrada"
-            log.debug(f"confirmar_reserva('{id_reserva}') → estado actual: {estado}")
+            log.debug(f"confirmar_reserva('{id_reserva}') → {estado}")
         return confirmada
 
     def cancelar_reserva(self, id_reserva: str, motivo: str = "") -> bool:
-        """Cancela una reserva con manejo defensivo de estados."""
         try:
             reserva = self._obtener_reserva_o_error(id_reserva)
             reserva.cancelar(motivo or "sin motivo")
+            self.notificar("reserva_cancelada", {
+                "reserva_id": reserva.id,
+                "cliente": reserva.cliente.nombre,
+                "email": reserva.cliente.email,
+                "servicio": reserva.servicio.nombre,
+                "motivo": motivo,
+            })
             return True
         except EstadoReservaError as exc:
             log.warning(f"No se puede cancelar: {exc}")
@@ -211,7 +211,6 @@ class GestionReservas:
             return False
 
     def calcular_costo_reserva(self, id_reserva: str) -> Optional[float]:
-        """Devuelve el costo almacenado en la reserva o None si hay error."""
         try:
             reserva = self._obtener_reserva_o_error(id_reserva)
             return reserva.costo
@@ -219,12 +218,13 @@ class GestionReservas:
             log.error(f"No se pudo calcular costo: {exc}")
             return None
 
-    def listar_reservas(
-        self, estado: Optional[str] = None
-    ) -> List[Reserva]:
+    def listar_reservas(self, estado: Optional[str] = None) -> List[Reserva]:
         if estado:
             return [r for r in self._reservas if r.estado == estado]
         return list(self._reservas)
+
+    def listar_facturas(self) -> List[Factura]:
+        return list(self._facturas)
 
     # ══════════════════════════════════════════════════════════
     # MÉTODOS PRIVADOS DE APOYO
@@ -249,19 +249,19 @@ class GestionReservas:
     # ══════════════════════════════════════════════════════════
 
     def reporte_general(self) -> dict:
-        """Genera un snapshot del estado del sistema."""
-        pendientes = len(self.listar_reservas(EstadoReserva.PENDIENTE))
+        pendientes  = len(self.listar_reservas(EstadoReserva.PENDIENTE))
         confirmadas = len(self.listar_reservas(EstadoReserva.CONFIRMADA))
-        canceladas = len(self.listar_reservas(EstadoReserva.CANCELADA))
-        ingresos = sum(
+        canceladas  = len(self.listar_reservas(EstadoReserva.CANCELADA))
+        ingresos    = sum(
             r.costo for r in self._reservas
             if r.estado == EstadoReserva.CONFIRMADA
         )
         return {
             "clientes_registrados": len(self._clientes),
-            "servicios_activos": len(self.listar_servicios()),
-            "reservas_pendientes": pendientes,
+            "servicios_activos":    len(self.listar_servicios()),
+            "reservas_pendientes":  pendientes,
             "reservas_confirmadas": confirmadas,
-            "reservas_canceladas": canceladas,
+            "reservas_canceladas":  canceladas,
+            "facturas_emitidas":    len(self._facturas),
             "ingresos_confirmados": f"${ingresos:,.2f}",
         }
