@@ -199,8 +199,21 @@ The system **never crashes**. Every public method catches its own exceptions, lo
 
 ## Author
 
-Developed as a portfolio project demonstrating professional Python development skills.
-Applicable to **Full Stack Developer**, **Data Analyst**, and **Software Engineer** roles.
+**Camilo Andres Leon Rubriche**
+
+> Full Stack Developer | Data Analyst & BI | Python Engineer — Bogotá, Colombia
+
+| | |
+|---|---|
+| **LinkedIn** | [linkedin.com/in/caleru](https://www.linkedin.com/in/caleru) |
+| **Email** | [camiloleonrubriche@outlook.com](mailto:camiloleonrubriche@outlook.com) |
+| **GitHub** | [github.com/clr-techlead](https://github.com/clr-techlead) |
+| **Location** | Bogotá, Colombia |
+
+This project was designed and built as part of a professional portfolio demonstrating
+Object-Oriented Programming, software architecture, and clean code practices.
+It reflects competencies applicable to **Full Stack Development**, **Data Engineering**,
+**Business Intelligence**, and **Software Engineering** roles.
 
 ---
 
