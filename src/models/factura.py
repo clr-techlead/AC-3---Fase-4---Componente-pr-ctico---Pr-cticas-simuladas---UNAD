@@ -150,3 +150,4 @@ class Factura:
 
     def __repr__(self) -> str:
         return f"Factura(numero='{self.numero}', total=${self.total:,.2f})"
+    

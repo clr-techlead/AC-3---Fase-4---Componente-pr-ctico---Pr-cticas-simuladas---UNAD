@@ -219,3 +219,4 @@ class Asesoria(Servicio):
             f"Asesoría '{self.nombre}' — nivel {self.__nivel.capitalize()}, "
             f"${self.precio_base:,.0f}/hora base"
         )
+

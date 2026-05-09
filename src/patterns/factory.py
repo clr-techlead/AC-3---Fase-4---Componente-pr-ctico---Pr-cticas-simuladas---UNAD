@@ -71,3 +71,4 @@ class ServicioFactory:
     def tipos_disponibles() -> tuple:
         """Devuelve los tipos de servicio registrados en la fábrica."""
         return ServicioFactory._TIPOS_SOPORTADOS
+
